@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, Alert } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Video, Users } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,8 +9,13 @@ import { GradientButton } from '@/components/GradientButton';
 import { LiveStream } from '@/components/LiveStream';
 
 export default function LiveTestScreen() {
-  const [channelName, setChannelName] = useState<string>('test-channel-' + Date.now());
-  const [isHost, setIsHost] = useState<boolean>(true);
+  const params = useLocalSearchParams();
+  const [channelName, setChannelName] = useState<string>(
+    (params.channelName as string) || 'test-channel-' + Date.now()
+  );
+  const [isHost, setIsHost] = useState<boolean>(
+    params.isHost ? params.isHost === 'true' : true
+  );
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [viewerCount, setViewerCount] = useState<number>(0);
@@ -40,6 +45,10 @@ export default function LiveTestScreen() {
   }, [countdown]);
 
   const startStream = () => {
+    if (!channelName.trim()) {
+      Alert.alert('Error', 'Please enter a channel name');
+      return;
+    }
     startCountdown();
   };
 

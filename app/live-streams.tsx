@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { trpc } from '@/lib/trpc';
-import { Video, Users, Music } from 'lucide-react-native';
+import { Video, Users, Music, Plus, ArrowLeft } from 'lucide-react-native';
 
 export default function LiveStreamsScreen() {
   const router = useRouter();
@@ -30,8 +30,23 @@ export default function LiveStreamsScreen() {
         style={styles.gradient}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Live Battles</Text>
-          <Text style={styles.subtitle}>Join the action!</Text>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <ArrowLeft size={24} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={styles.title}>Live Battles</Text>
+            <Text style={styles.subtitle}>Join the action!</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.goLiveButton}
+            onPress={() => router.push('/live-test')}
+          >
+            <Plus size={20} color="#fff" />
+            <Text style={styles.goLiveText}>Go Live</Text>
+          </TouchableOpacity>
         </View>
 
         <ScrollView
@@ -118,8 +133,36 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 20,
     paddingTop: 10,
+    gap: 12,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerContent: {
+    flex: 1,
+  },
+  goLiveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ff4757',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  goLiveText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   title: {
     fontSize: 32,
