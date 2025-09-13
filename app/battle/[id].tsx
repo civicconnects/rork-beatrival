@@ -3,15 +3,18 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Eye, ThumbsUp } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '@/constants/theme';
 import { useBattles } from '@/hooks/use-battles';
 import { GradientButton } from '@/components/GradientButton';
+import { LiveStream } from '@/components/LiveStream';
 
 export default function BattleScreen() {
   const { id } = useLocalSearchParams();
   const { battles, vote } = useBattles();
   const [timeLeft, setTimeLeft] = useState(180);
   const [hasVoted, setHasVoted] = useState(false);
+  const insets = useSafeAreaInsets();
   
   const battle = battles.find(b => b.id === id);
 
@@ -51,7 +54,7 @@ export default function BattleScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
@@ -84,7 +87,13 @@ export default function BattleScreen() {
               <Text style={styles.liveText}>LIVE BATTLE</Text>
             </View>
           </View>
-          <Text style={styles.liveMessage}>Recording in progress...</Text>
+          <LiveStream
+            channelName={`battle-${battle.id}`}
+            isHost={true}
+            onStreamEnd={() => {
+              console.log('Stream ended for battle:', battle.id);
+            }}
+          />
         </View>
       )}
 
@@ -121,13 +130,13 @@ export default function BattleScreen() {
             <GradientButton
               title={battle.challenger.username}
               onPress={() => handleVote('challenger')}
-              gradient={theme.colors.gradients.electric}
+              gradient={[...theme.colors.gradients.electric]}
               style={styles.voteButton}
             />
             <GradientButton
               title={battle.opponent.username}
               onPress={() => handleVote('opponent')}
-              gradient={theme.colors.gradients.fire}
+              gradient={[...theme.colors.gradients.fire]}
               style={styles.voteButton}
             />
           </View>
@@ -143,8 +152,8 @@ export default function BattleScreen() {
 
       {/* Hashtags */}
       <View style={styles.hashtags}>
-        {battle.hashtags.map((tag, index) => (
-          <Text key={index} style={styles.hashtag}>{tag}</Text>
+        {battle.hashtags.map((tag) => (
+          <Text key={tag} style={styles.hashtag}>{tag}</Text>
         ))}
       </View>
     </View>
@@ -161,7 +170,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: theme.spacing.lg,
-    paddingTop: 60,
   },
   closeButton: {
     width: 40,
