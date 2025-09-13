@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,6 +11,7 @@ import { useBattles } from '@/hooks/use-battles';
 export default function RecordScreen() {
   const [facing, setFacing] = useState<CameraType>('front');
   const [isRecording, setIsRecording] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const { user } = useAuth();
   const { createChallenge } = useBattles();
@@ -35,32 +36,57 @@ export default function RecordScreen() {
     setFacing(current => (current === 'back' ? 'front' : 'back'));
   };
 
-  const startRecording = () => {
-    setIsRecording(true);
-    Alert.alert(
-      'Recording Started',
-      'Environmental audio will be captured. Make sure your music is playing!',
-      [{ text: 'OK' }]
-    );
+  const startCountdown = () => {
+    setCountdown(3);
+  };
+
+  useEffect(() => {
+    if (countdown === null) return;
     
-    setTimeout(() => {
-      setIsRecording(false);
-      Alert.alert('Recording Complete', 'Your battle video has been saved!');
-    }, 5000);
+    if (countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else {
+      // Start actual recording
+      setCountdown(null);
+      setIsRecording(true);
+      Alert.alert(
+        'Recording Started',
+        'Environmental audio will be captured. Make sure your music is playing!',
+        [{ text: 'OK' }]
+      );
+      
+      setTimeout(() => {
+        setIsRecording(false);
+        Alert.alert('Recording Complete', 'Your battle video has been saved!');
+      }, 5000);
+    }
+  }, [countdown]);
+
+  const startRecording = () => {
+    startCountdown();
   };
 
   const createOpenChallenge = () => {
     if (!user) return;
     
-    createChallenge({
-      from: user,
-      type: 'open',
-      hashtags: ['#OpenChallenge'],
-      timeLimit: 120,
-    });
+    // Start countdown before going live
+    setCountdown(3);
     
-    Alert.alert('Challenge Created', 'Your open challenge is now live!');
-    router.push('/(tabs)');
+    // After countdown, create challenge
+    setTimeout(() => {
+      createChallenge({
+        from: user,
+        type: 'open',
+        hashtags: ['#OpenChallenge'],
+        timeLimit: 120,
+      });
+      
+      Alert.alert('Challenge Created', 'Your open challenge is now live!');
+      router.push('/(tabs)');
+    }, 4000); // 3 seconds countdown + 1 second buffer
   };
 
   return (
@@ -115,6 +141,13 @@ export default function RecordScreen() {
             </View>
           )}
 
+          {/* Countdown */}
+          {countdown !== null && (
+            <View style={styles.countdownContainer}>
+              <Text style={styles.countdownText}>{countdown === 0 ? 'GO!' : countdown}</Text>
+            </View>
+          )}
+
           {/* Recording Indicator */}
           {isRecording && (
             <View style={styles.recordingIndicator}>
@@ -126,15 +159,15 @@ export default function RecordScreen() {
           {/* Bottom Controls */}
           <View style={styles.bottomControls}>
             <TouchableOpacity
-              style={[styles.recordButton, isRecording && styles.recordingButton]}
+              style={[styles.recordButton, (isRecording || countdown !== null) && styles.recordingButton]}
               onPress={startRecording}
-              disabled={isRecording}
+              disabled={isRecording || countdown !== null}
             >
               <View style={styles.recordButtonInner} />
             </TouchableOpacity>
             
             <Text style={styles.hint}>
-              {isRecording ? 'Recording environmental audio...' : 'Tap to start practice recording'}
+              {countdown !== null ? 'Get ready...' : isRecording ? 'Recording environmental audio...' : 'Tap to start practice recording'}
             </Text>
           </View>
         </View>
@@ -223,6 +256,27 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: '700',
+  },
+  countdownContainer: {
+    position: 'absolute',
+    top: '50%',
+    alignSelf: 'center',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: theme.colors.primary,
+  },
+  countdownText: {
+    color: 'white',
+    fontSize: 48,
+    fontWeight: '900',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   bottomControls: {
     alignItems: 'center',

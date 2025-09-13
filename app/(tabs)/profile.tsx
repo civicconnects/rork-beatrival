@@ -28,64 +28,66 @@ export default function ProfileScreen() {
   return (
     <ScrollView style={styles.container}>
       {/* Profile Header */}
-      <LinearGradient
-        colors={theme.colors.gradients.electric}
-        style={styles.header}
-      >
-        <View style={styles.profileInfo}>
-          <Image source={{ uri: user.avatar }} style={styles.avatar} />
-          {user.isPro && (
-            <View style={styles.proBadge}>
-              <Crown size={16} color="white" />
-              <Text style={styles.proText}>PRO</Text>
+      <View style={styles.profileContainer}>
+        <LinearGradient
+          colors={theme.colors.gradients.electric}
+          style={styles.header}
+        >
+          <View style={styles.profileInfo}>
+            <Image source={{ uri: user.avatar }} style={styles.avatar} />
+            {user.isPro && (
+              <View style={styles.proBadge}>
+                <Crown size={16} color="white" />
+                <Text style={styles.proText}>PRO</Text>
+              </View>
+            )}
+            <Text style={styles.displayName}>{user.displayName}</Text>
+            <Text style={styles.username}>@{user.username}</Text>
+            <Text style={styles.bio}>{user.bio}</Text>
+          </View>
+
+          <View style={styles.profileHeader}>
+            <Text style={styles.ageDisplay}>{user.age} | {user.ageGroup === '1-5' ? 'Grades 1-5' : user.ageGroup === '6-8' ? 'Grades 6-8' : user.ageGroup === '9-12' ? 'Grades 9-12' : user.ageGroup === '18-24' ? '18-24 Years' : '25+ Years'}</Text>
+          </View>
+
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{user.wins}</Text>
+              <Text style={styles.statLabel}>Wins</Text>
             </View>
-          )}
-          <Text style={styles.displayName}>{user.displayName}</Text>
-          <Text style={styles.username}>@{user.username}</Text>
-          <Text style={styles.bio}>{user.bio}</Text>
-        </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{user.losses}</Text>
+              <Text style={styles.statLabel}>Losses</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{user.beatPoints}</Text>
+              <Text style={styles.statLabel}>Points</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>#{user.rank}</Text>
+              <Text style={styles.statLabel}>Rank</Text>
+            </View>
+          </View>
 
-        <View style={styles.profileHeader}>
-          <Text style={styles.ageDisplay}>{user.age} | {user.ageGroup === '1-5' ? 'Grades 1-5' : user.ageGroup === '6-8' ? 'Grades 6-8' : user.ageGroup === '9-12' ? 'Grades 9-12' : user.ageGroup === '18-24' ? '18-24 Years' : '25+ Years'}</Text>
-        </View>
+          <View style={styles.gemsRow}>
+            <View style={styles.gemsContainer}>
+              <Gem size={20} color={theme.colors.warning} />
+              <Text style={styles.gemsText}>{user.beatGems} BeatGems</Text>
+            </View>
+          </View>
 
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{user.wins}</Text>
-            <Text style={styles.statLabel}>Wins</Text>
+          <View style={styles.socialStats}>
+            <TouchableOpacity style={styles.socialStat}>
+              <Text style={styles.socialValue}>{user.followers}</Text>
+              <Text style={styles.socialLabel}>Followers</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.socialStat}>
+              <Text style={styles.socialValue}>{user.following}</Text>
+              <Text style={styles.socialLabel}>Following</Text>
+            </TouchableOpacity>
           </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{user.losses}</Text>
-            <Text style={styles.statLabel}>Losses</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{user.beatPoints}</Text>
-            <Text style={styles.statLabel}>Points</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>#{user.rank}</Text>
-            <Text style={styles.statLabel}>Rank</Text>
-          </View>
-        </View>
-
-        <View style={styles.gemsRow}>
-          <View style={styles.gemsContainer}>
-            <Gem size={20} color={theme.colors.warning} />
-            <Text style={styles.gemsText}>{user.beatGems} BeatGems</Text>
-          </View>
-        </View>
-
-        <View style={styles.socialStats}>
-          <TouchableOpacity style={styles.socialStat}>
-            <Text style={styles.socialValue}>{user.followers}</Text>
-            <Text style={styles.socialLabel}>Followers</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.socialStat}>
-            <Text style={styles.socialValue}>{user.following}</Text>
-            <Text style={styles.socialLabel}>Following</Text>
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
+        </LinearGradient>
+      </View>
 
       {/* Pro Upgrade */}
       {!user.isPro && (
@@ -178,11 +180,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: theme.spacing.xxl,
   },
+  profileContainer: {
+    padding: theme.spacing.md,
+  },
   header: {
     padding: theme.spacing.lg,
     paddingTop: theme.spacing.xxl,
-    borderBottomLeftRadius: theme.borderRadius.xl,
-    borderBottomRightRadius: theme.borderRadius.xl,
+    borderRadius: theme.borderRadius.xl,
   },
   profileInfo: {
     alignItems: 'center',

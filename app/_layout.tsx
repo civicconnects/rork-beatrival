@@ -59,6 +59,10 @@ function RootLayoutNav() {
         title: 'Report Issue',
         headerShown: false,
       }} />
+      <Stack.Screen name="live-test" options={{ 
+        title: 'Live Stream Test',
+        headerShown: false,
+      }} />
     </Stack>
   );
 }

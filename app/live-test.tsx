@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,25 +12,57 @@ export default function LiveTestScreen() {
   const [channelName, setChannelName] = useState<string>('test-channel-' + Date.now());
   const [isHost, setIsHost] = useState<boolean>(true);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [viewerCount, setViewerCount] = useState<number>(0);
   const insets = useSafeAreaInsets();
 
-  const startStream = () => {
+  const startCountdown = () => {
     if (!channelName.trim()) {
       Alert.alert('Error', 'Please enter a channel name');
       return;
     }
-    setIsStreaming(true);
+    setCountdown(3);
+  };
+
+  useEffect(() => {
+    if (countdown === null) return;
+    
+    if (countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else {
+      // Start actual streaming
+      setCountdown(null);
+      setIsStreaming(true);
+    }
+  }, [countdown]);
+
+  const startStream = () => {
+    startCountdown();
   };
 
   const stopStream = () => {
     setIsStreaming(false);
+    setCountdown(null);
     setViewerCount(0);
   };
 
   const handleViewerJoin = (count: number) => {
     setViewerCount(count);
   };
+
+  if (countdown !== null) {
+    return (
+      <View style={[styles.container, styles.countdownScreen, { paddingTop: insets.top }]}>
+        <View style={styles.countdownContainer}>
+          <Text style={styles.countdownText}>{countdown === 0 ? 'GO LIVE!' : countdown}</Text>
+          <Text style={styles.countdownSubtext}>Get ready to stream...</Text>
+        </View>
+      </View>
+    );
+  }
 
   if (isStreaming) {
     return (
@@ -119,8 +151,9 @@ export default function LiveTestScreen() {
           </View>
 
           <GradientButton
-            title="Start Live Stream"
+            title={countdown !== null ? `Starting in ${countdown === 0 ? 'GO!' : countdown}...` : "Start Live Stream"}
             onPress={startStream}
+            disabled={countdown !== null}
             style={styles.startButton}
           />
         </View>
@@ -259,5 +292,25 @@ const styles = StyleSheet.create({
   viewerText: {
     color: theme.colors.textSecondary,
     fontSize: 14,
+  },
+  countdownScreen: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+  },
+  countdownContainer: {
+    alignItems: 'center',
+    padding: theme.spacing.xl,
+  },
+  countdownText: {
+    color: theme.colors.primary,
+    fontSize: 72,
+    fontWeight: '900',
+    marginBottom: theme.spacing.md,
+  },
+  countdownSubtext: {
+    color: theme.colors.textSecondary,
+    fontSize: 18,
+    fontWeight: '500',
   },
 });
