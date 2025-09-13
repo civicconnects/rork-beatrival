@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Users, Eye, Trophy } from 'lucide-react-native';
+import { Users, Eye, Trophy, Music, Activity } from 'lucide-react-native';
 import { Battle } from '@/types';
 import { theme } from '@/constants/theme';
 
@@ -28,10 +28,22 @@ export const BattleCard: React.FC<BattleCardProps> = ({ battle, onPress }) => {
         )}
         
         <View style={styles.header}>
-          <View style={styles.hashtags}>
-            {battle.hashtags.slice(0, 2).map((tag, index) => (
-              <Text key={`${battle.id}-tag-${index}-${tag}`} style={styles.hashtag}>{tag}</Text>
-            ))}
+          <View style={styles.leftHeader}>
+            <View style={styles.battleType}>
+              {battle.battleType === 'sing' ? (
+                <Music size={14} color={theme.colors.accent} />
+              ) : (
+                <Activity size={14} color={theme.colors.accent} />
+              )}
+              <Text style={styles.battleTypeText}>
+                {battle.battleType === 'sing' ? 'Singing' : 'Dance'}
+              </Text>
+            </View>
+            <View style={styles.hashtags}>
+              {battle.hashtags.slice(0, 2).map((tag, index) => (
+                <Text key={`${battle.id}-tag-${index}-${tag}`} style={styles.hashtag}>{tag}</Text>
+              ))}
+            </View>
           </View>
           <View style={styles.viewers}>
             <Eye size={14} color={theme.colors.textSecondary} />
@@ -118,6 +130,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: theme.spacing.md,
+  },
+  leftHeader: {
+    flex: 1,
+    gap: theme.spacing.xs,
+  },
+  battleType: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  battleTypeText: {
+    color: theme.colors.accent,
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   hashtags: {
     flexDirection: 'row',

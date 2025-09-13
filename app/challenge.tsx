@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Hash, Clock, Users } from 'lucide-react-native';
+import { Hash, Clock, Users, Music, Activity } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useBattles } from '@/hooks/use-battles';
@@ -23,6 +23,7 @@ export default function ChallengeScreen() {
   const [selectedHashtags, setSelectedHashtags] = useState<string[]>([]);
   const [timeLimit, setTimeLimit] = useState(120);
   const [challengeType, setChallengeType] = useState<'open' | 'user'>('open');
+  const [battleType, setBattleType] = useState<'dance' | 'sing'>('dance');
 
   const handleCreateChallenge = () => {
     if (!user) return;
@@ -35,6 +36,7 @@ export default function ChallengeScreen() {
     createChallenge({
       from: user,
       type: challengeType,
+      battleType,
       hashtags: selectedHashtags,
       timeLimit,
     });
@@ -57,6 +59,32 @@ export default function ChallengeScreen() {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Battle Type - Dance or Sing */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Battle Type</Text>
+          <View style={styles.typeOptions}>
+            <TouchableOpacity
+              style={[styles.typeOption, battleType === 'dance' && styles.typeOptionActive]}
+              onPress={() => setBattleType('dance')}
+            >
+              <Activity size={20} color={battleType === 'dance' ? 'white' : theme.colors.textMuted} />
+              <Text style={[styles.typeText, battleType === 'dance' && styles.typeTextActive]}>
+                Dance Battle
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.typeOption, battleType === 'sing' && styles.typeOptionActive]}
+              onPress={() => setBattleType('sing')}
+            >
+              <Music size={20} color={battleType === 'sing' ? 'white' : theme.colors.textMuted} />
+              <Text style={[styles.typeText, battleType === 'sing' && styles.typeTextActive]}>
+                Singing Battle
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Challenge Type */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Challenge Type</Text>
@@ -134,6 +162,7 @@ export default function ChallengeScreen() {
         >
           <Text style={styles.previewTitle}>Challenge Preview</Text>
           <View style={styles.previewDetails}>
+            <Text style={styles.previewText}>Battle: {battleType === 'dance' ? '💃 Dance' : '🎤 Singing'}</Text>
             <Text style={styles.previewText}>Type: {challengeType === 'open' ? 'Open to All' : 'User Challenge'}</Text>
             <Text style={styles.previewText}>Duration: {timeLimit / 60} minutes</Text>
             <Text style={styles.previewText}>

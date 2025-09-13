@@ -71,6 +71,7 @@ export interface CrewBattle {
   id: string;
   crew1: Crew;
   crew2: Crew;
+  battleType: 'dance' | 'sing';
   status: 'pending' | 'lobby' | 'live' | 'voting' | 'completed';
   startTime: Date;
   endTime?: Date;
@@ -88,6 +89,7 @@ export interface Battle {
   id: string;
   challenger: User;
   opponent: User;
+  battleType: 'dance' | 'sing';
   status: 'pending' | 'lobby' | 'live' | 'voting' | 'completed';
   startTime: Date;
   endTime?: Date;
@@ -109,6 +111,7 @@ export interface Challenge {
   from: User;
   to?: User;
   type: 'user' | 'open' | 'group';
+  battleType: 'dance' | 'sing';
   hashtags: string[];
   timeLimit: number;
   status: 'pending' | 'accepted' | 'declined' | 'expired';
