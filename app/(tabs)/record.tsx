@@ -1,0 +1,275 @@
+import React, { useState, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
+import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import { LinearGradient } from 'expo-linear-gradient';
+import { X, SwitchCamera, Zap, Users, Hash } from 'lucide-react-native';
+import { theme } from '@/constants/theme';
+import { router } from 'expo-router';
+import { useAuth } from '@/hooks/use-auth';
+import { useBattles } from '@/hooks/use-battles';
+
+export default function RecordScreen() {
+  const [facing, setFacing] = useState<CameraType>('front');
+  const [isRecording, setIsRecording] = useState(false);
+  const [permission, requestPermission] = useCameraPermissions();
+  const { user } = useAuth();
+  const { createChallenge } = useBattles();
+  const cameraRef = useRef<any>(null);
+
+  if (!permission) {
+    return <View style={styles.container} />;
+  }
+
+  if (!permission.granted) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.permissionText}>We need camera permission to record battles</Text>
+        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+          <Text style={styles.permissionButtonText}>Grant Permission</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const toggleCameraFacing = () => {
+    setFacing(current => (current === 'back' ? 'front' : 'back'));
+  };
+
+  const startRecording = () => {
+    setIsRecording(true);
+    Alert.alert(
+      'Recording Started',
+      'Environmental audio will be captured. Make sure your music is playing!',
+      [{ text: 'OK' }]
+    );
+    
+    setTimeout(() => {
+      setIsRecording(false);
+      Alert.alert('Recording Complete', 'Your battle video has been saved!');
+    }, 5000);
+  };
+
+  const createOpenChallenge = () => {
+    if (!user) return;
+    
+    createChallenge({
+      from: user,
+      type: 'open',
+      hashtags: ['#OpenChallenge'],
+      timeLimit: 120,
+    });
+    
+    Alert.alert('Challenge Created', 'Your open challenge is now live!');
+    router.push('/(tabs)');
+  };
+
+  return (
+    <View style={styles.container}>
+      <CameraView style={styles.camera} facing={facing} ref={cameraRef}>
+        <View style={styles.overlay}>
+          {/* Top Controls */}
+          <View style={styles.topControls}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => router.back()}
+            >
+              <X size={28} color="white" />
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.flipButton}
+              onPress={toggleCameraFacing}
+            >
+              <SwitchCamera size={24} color="white" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Challenge Options */}
+          {!isRecording && (
+            <View style={styles.challengeOptions}>
+              <TouchableOpacity
+                style={styles.challengeOption}
+                onPress={createOpenChallenge}
+              >
+                <LinearGradient
+                  colors={theme.colors.gradients.fire}
+                  style={styles.challengeGradient}
+                >
+                  <Zap size={20} color="white" />
+                  <Text style={styles.challengeText}>Open Challenge</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.challengeOption}
+                onPress={() => router.push('/challenge')}
+              >
+                <LinearGradient
+                  colors={theme.colors.gradients.electric}
+                  style={styles.challengeGradient}
+                >
+                  <Users size={20} color="white" />
+                  <Text style={styles.challengeText}>Challenge User</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Recording Indicator */}
+          {isRecording && (
+            <View style={styles.recordingIndicator}>
+              <View style={styles.recordingDot} />
+              <Text style={styles.recordingText}>RECORDING</Text>
+            </View>
+          )}
+
+          {/* Bottom Controls */}
+          <View style={styles.bottomControls}>
+            <TouchableOpacity
+              style={[styles.recordButton, isRecording && styles.recordingButton]}
+              onPress={startRecording}
+              disabled={isRecording}
+            >
+              <View style={styles.recordButtonInner} />
+            </TouchableOpacity>
+            
+            <Text style={styles.hint}>
+              {isRecording ? 'Recording environmental audio...' : 'Tap to start practice recording'}
+            </Text>
+          </View>
+        </View>
+      </CameraView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  camera: {
+    flex: 1,
+    width: '100%',
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    justifyContent: 'space-between',
+  },
+  topControls: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: theme.spacing.lg,
+    paddingTop: 60,
+  },
+  closeButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  flipButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  challengeOptions: {
+    paddingHorizontal: theme.spacing.lg,
+    gap: theme.spacing.md,
+  },
+  challengeOption: {
+    borderRadius: theme.borderRadius.lg,
+    overflow: 'hidden',
+  },
+  challengeGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: theme.spacing.md,
+    gap: theme.spacing.sm,
+  },
+  challengeText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  recordingIndicator: {
+    position: 'absolute',
+    top: 120,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,0,0,0.9)',
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.full,
+    gap: theme.spacing.sm,
+  },
+  recordingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'white',
+  },
+  recordingText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  bottomControls: {
+    alignItems: 'center',
+    paddingBottom: 40,
+  },
+  recordButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: 'white',
+  },
+  recordingButton: {
+    borderColor: theme.colors.error,
+  },
+  recordButtonInner: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: theme.colors.error,
+  },
+  hint: {
+    color: 'white',
+    fontSize: 14,
+    marginTop: theme.spacing.md,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  permissionText: {
+    color: theme.colors.text,
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: theme.spacing.lg,
+  },
+  permissionButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.full,
+  },
+  permissionButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
