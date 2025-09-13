@@ -38,33 +38,45 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
   // Get Agora token
   const generateTokenMutation = trpc.agora.generateToken.useMutation({
     onSuccess: (data) => {
-      if (data?.token && data?.appId) {
-        console.log('✅ Real Agora token generated successfully:', {
-          appId: data.appId,
-          channelName: data.channelName,
-          uid: data.uid,
-          role: data.role === 1 ? 'PUBLISHER (Host)' : 'SUBSCRIBER (Viewer)',
-          expireTime: new Date(data.expireTime * 1000).toISOString(),
-          tokenLength: data.token.length
-        });
-        setAgoraToken(data.token);
-        
-        if (Platform.OS === 'web') {
-          startWebRTCStream();
-        } else {
-          // For mobile, we'll use camera view with Agora token ready
-          setIsStreaming(true);
+      try {
+        if (data?.token && data?.appId) {
+          console.log('✅ Real Agora token generated successfully:', {
+            appId: data.appId,
+            channelName: data.channelName,
+            uid: data.uid,
+            role: data.role === 1 ? 'PUBLISHER (Host)' : 'SUBSCRIBER (Viewer)',
+            expireTime: new Date(data.expireTime * 1000).toISOString(),
+            tokenLength: data.token.length
+          });
+          setAgoraToken(data.token);
           
-          // Log that we're ready for Agora SDK integration
-          console.log('📱 Mobile: Camera ready, Agora token available for SDK integration');
-          console.log('🔧 Next step: Integrate Agora React Native SDK for real streaming');
+          if (Platform.OS === 'web') {
+            startWebRTCStream();
+          } else {
+            // For mobile, we'll use camera view with Agora token ready
+            setIsStreaming(true);
+            
+            // Log that we're ready for Agora SDK integration
+            console.log('📱 Mobile: Camera ready, Agora token available for SDK integration');
+            console.log('🔧 Next step: Integrate Agora React Native SDK for real streaming');
+          }
+        } else {
+          console.error('❌ Invalid token response:', data);
+          Alert.alert('Stream Error', 'Invalid response from server. Please try again.');
         }
+      } catch (error) {
+        console.error('❌ Error processing token response:', error);
+        Alert.alert('Stream Error', 'Failed to process server response. Please try again.');
       }
     },
     onError: (error) => {
-      const errorMessage = error?.message || 'Unknown error';
-      console.error('❌ Failed to generate Agora token:', errorMessage);
-      Alert.alert('Stream Error', `Failed to start stream: ${errorMessage}\n\nPlease check your internet connection and try again.`);
+      try {
+        const errorMessage = error?.message || 'Unknown error';
+        console.error('❌ Failed to generate Agora token:', errorMessage);
+        Alert.alert('Stream Error', `Failed to start stream: ${errorMessage}\n\nPlease check your internet connection and try again.`);
+      } catch (alertError) {
+        console.error('❌ Error showing alert:', alertError);
+      }
     },
   });
 

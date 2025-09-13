@@ -187,6 +187,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     paddingTop: theme.spacing.xxl,
     borderRadius: theme.borderRadius.xl,
+    marginHorizontal: 0,
   },
   profileInfo: {
     alignItems: 'center',
@@ -274,6 +275,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     borderRadius: theme.borderRadius.xl,
     alignItems: 'center',
+    marginHorizontal: 0,
   },
   proTitle: {
     color: 'white',

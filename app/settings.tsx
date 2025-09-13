@@ -69,7 +69,7 @@ export default function SettingsScreen() {
             icon={User}
             title="Profile Settings"
             subtitle="Edit your profile information"
-            onPress={() => Alert.alert('Coming Soon', 'Profile editing will be available soon!')}
+            onPress={() => router.push('/profile-edit')}
           />
           <SettingItem
             icon={Shield}
