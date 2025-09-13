@@ -16,6 +16,9 @@ export default function LiveTestScreen() {
   const [isHost, setIsHost] = useState<boolean>(
     params.isHost ? params.isHost === 'true' : true
   );
+  const [battleType] = useState<'dancing' | 'singing'>(
+    (params.battleType as 'dancing' | 'singing') || 'dancing'
+  );
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [viewerCount, setViewerCount] = useState<number>(0);
@@ -94,6 +97,7 @@ export default function LiveTestScreen() {
         <LiveStream
           channelName={channelName}
           isHost={isHost}
+          battleType={battleType}
           onStreamEnd={stopStream}
           onViewerJoin={handleViewerJoin}
         />
