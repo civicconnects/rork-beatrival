@@ -21,9 +21,10 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
 }) => {
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
-  const [isStreaming, setIsStreaming] = useState<boolean>(false);
+  const [isStreamingInternal, setIsStreamingInternal] = useState<boolean>(false);
   const [viewerCount, setViewerCount] = useState<number>(0);
   const [agoraToken, setAgoraToken] = useState<string | null>(null);
+  const [hasStarted, setHasStarted] = useState<boolean>(false);
   const streamRef = useRef<MediaStream | null>(null);
   
   // Backend mutations
@@ -38,7 +39,7 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
     }
     
     // Notify backend that stream has ended
-    if (isHost && isStreaming) {
+    if (isHost && isStreamingInternal) {
       try {
         await endStreamMutation.mutateAsync({ channelName });
         console.log('✅ Stream ended in backend');
@@ -47,11 +48,12 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
       }
     }
     
-    setIsStreaming(false);
+    setIsStreamingInternal(false);
     setViewerCount(0);
     setAgoraToken(null);
+    setHasStarted(false);
     onStreamEnd?.();
-  }, [channelName, isHost, isStreaming, onStreamEnd, endStreamMutation]);
+  }, [channelName, isHost, isStreamingInternal, onStreamEnd, endStreamMutation]);
 
   // Get Agora token
   const generateTokenMutation = trpc.agora.generateToken.useMutation({
@@ -100,7 +102,7 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
             startWebRTCStream();
           } else {
             // For mobile, we'll use camera view with Agora token ready
-            setIsStreaming(true);
+            setIsStreamingInternal(true);
             
             // Log that we're ready for Agora SDK integration
             console.log('📱 Mobile: Camera ready, Agora token available for SDK integration');
@@ -143,7 +145,7 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
         },
       });
       streamRef.current = stream;
-      setIsStreaming(true);
+      setIsStreamingInternal(true);
       
       // Simulate viewer count updates
       const interval = setInterval(() => {
@@ -163,11 +165,20 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
 
 
   const startStream = () => {
+    setHasStarted(true);
     generateTokenMutation.mutate({
       channelName,
       role: isHost ? 1 : 2, // 1 = host, 2 = audience
     });
   };
+
+  // Auto-start stream when component mounts (called from parent after countdown)
+  useEffect(() => {
+    if (!hasStarted) {
+      console.log('🚀 Auto-starting stream for channel:', channelName);
+      startStream();
+    }
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -194,7 +205,7 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
   if (Platform.OS === 'web') {
     return (
       <View style={styles.container}>
-        {isStreaming ? (
+        {isStreamingInternal ? (
           <View style={styles.webStreamContainer}>
             <View style={styles.streamHeader}>
               <Text style={styles.channelName}>Channel: {channelName}</Text>
@@ -240,7 +251,7 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
   // Mobile camera view
   return (
     <View style={styles.container}>
-      {isStreaming ? (
+      {isStreamingInternal ? (
         <CameraView style={styles.camera} facing={facing}>
           <View style={styles.mobileHeader}>
             <Text style={styles.mobileChannelName}>{channelName}</Text>
