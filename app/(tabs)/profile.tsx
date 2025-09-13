@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Settings, Award, Users, LogOut, Crown, Gem, MessageCircle, Flag, HelpCircle } from 'lucide-react-native';
+import { Settings, Award, Users, LogOut, Crown, Gem, MessageCircle, Flag, HelpCircle, Video } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { router } from 'expo-router';
@@ -146,6 +146,11 @@ export default function ProfileScreen() {
         <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/help')}>
           <HelpCircle size={20} color={theme.colors.text} />
           <Text style={styles.menuText}>Help & FAQ</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/live-test')}>
+          <Video size={20} color={theme.colors.accent} />
+          <Text style={[styles.menuText, { color: theme.colors.accent }]}>🔧 Test Agora Live Stream</Text>
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/report')}>
