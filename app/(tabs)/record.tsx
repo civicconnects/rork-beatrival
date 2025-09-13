@@ -80,6 +80,7 @@ export default function RecordScreen() {
       createChallenge({
         from: user,
         type: 'open',
+        battleType: 'dance', // Default to dance, can be changed in challenge screen
         hashtags: ['#OpenChallenge'],
         timeLimit: 120,
       });

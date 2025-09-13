@@ -31,7 +31,7 @@ export default function ProfileScreen() {
       <View style={styles.profileContainer}>
         <LinearGradient
           colors={theme.colors.gradients.electric}
-          style={styles.header}
+          style={styles.profileCard}
         >
           <View style={styles.profileInfo}>
             <Image source={{ uri: user.avatar }} style={styles.avatar} />
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   profileContainer: {
     padding: theme.spacing.md,
   },
-  header: {
+  profileCard: {
     padding: theme.spacing.lg,
     paddingTop: theme.spacing.xxl,
     borderRadius: theme.borderRadius.xl,

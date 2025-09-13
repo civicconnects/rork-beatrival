@@ -39,11 +39,13 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
   const generateTokenMutation = trpc.agora.generateToken.useMutation({
     onSuccess: (data) => {
       if (data?.token && data?.appId) {
-        console.log('Agora token generated successfully:', {
+        console.log('✅ Real Agora token generated successfully:', {
           appId: data.appId,
           channelName: data.channelName,
           uid: data.uid,
-          expireTime: new Date(data.expireTime * 1000).toISOString()
+          role: data.role === 1 ? 'PUBLISHER (Host)' : 'SUBSCRIBER (Viewer)',
+          expireTime: new Date(data.expireTime * 1000).toISOString(),
+          tokenLength: data.token.length
         });
         setAgoraToken(data.token);
         
@@ -52,15 +54,17 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
         } else {
           // For mobile, we'll use camera view with Agora token ready
           setIsStreaming(true);
+          
+          // Log that we're ready for Agora SDK integration
+          console.log('📱 Mobile: Camera ready, Agora token available for SDK integration');
+          console.log('🔧 Next step: Integrate Agora React Native SDK for real streaming');
         }
       }
     },
     onError: (error) => {
       const errorMessage = error?.message || 'Unknown error';
-      console.error('Failed to generate Agora token:', errorMessage);
-      if (Platform.OS !== 'web') {
-        Alert.alert('Error', `Failed to start stream: ${errorMessage}`);
-      }
+      console.error('❌ Failed to generate Agora token:', errorMessage);
+      Alert.alert('Stream Error', `Failed to start stream: ${errorMessage}\n\nPlease check your internet connection and try again.`);
     },
   });
 

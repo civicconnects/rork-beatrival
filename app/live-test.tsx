@@ -116,9 +116,11 @@ export default function LiveTestScreen() {
           </View>
           
           <Text style={styles.description}>
-            Test the Agora integration with your credentials:
+            ✅ Real Agora integration with your credentials:
             {"\n"}• App ID: 4a6fd7540b324275bab0f8f82def07aa
             {"\n"}• Certificate: 12a1828565d14960a78234eb4933a46d
+            {"\n"}• ✅ Real token generation working
+            {"\n"}• 📱 Mobile: Camera + Token ready for Agora SDK
           </Text>
 
           <View style={styles.inputContainer}>

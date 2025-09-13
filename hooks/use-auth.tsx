@@ -27,7 +27,7 @@ export const [AuthProvider, useAuth] = createContextHook<AuthState>(() => {
       const onboarded = await AsyncStorage.getItem('onboarded');
       const verified = await AsyncStorage.getItem('ageVerified');
       
-      if (stored && stored !== 'undefined' && stored !== 'null') {
+      if (stored && stored !== 'undefined' && stored !== 'null' && stored.trim() !== '') {
         try {
           const parsedUser = JSON.parse(stored);
           if (parsedUser && typeof parsedUser === 'object' && parsedUser.id) {
@@ -42,13 +42,18 @@ export const [AuthProvider, useAuth] = createContextHook<AuthState>(() => {
             setUser(null);
           }
         } catch (parseError) {
-          console.error('Failed to parse stored user:', parseError);
+          console.error('Failed to parse stored user data, clearing corrupted storage:', parseError);
+          // Clear all auth-related storage on parse error
           await AsyncStorage.multiRemove(['user', 'onboarded', 'ageVerified']);
           setUser(null);
           setIsOnboarded(false);
           setAgeVerified(false);
         }
       } else {
+        // Clear invalid stored data
+        if (stored && (stored === 'undefined' || stored === 'null' || stored.trim() === '')) {
+          await AsyncStorage.removeItem('user');
+        }
         setUser(null);
       }
       
