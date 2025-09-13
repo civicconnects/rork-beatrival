@@ -12,25 +12,10 @@ export default function RecordScreen() {
   const [facing, setFacing] = useState<CameraType>('front');
   const [isRecording, setIsRecording] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const cameraRef = useRef<any>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const { user } = useAuth();
   const { createChallenge } = useBattles();
-  const cameraRef = useRef<any>(null);
-
-  if (!permission) {
-    return <View style={styles.container} />;
-  }
-
-  if (!permission.granted) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.permissionText}>We need camera permission to record battles</Text>
-        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-          <Text style={styles.permissionButtonText}>Grant Permission</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
 
   const toggleCameraFacing = () => {
     setFacing(current => (current === 'back' ? 'front' : 'back'));
@@ -88,6 +73,22 @@ export default function RecordScreen() {
       router.push('/live-test');
     }, 4000); // 3 seconds countdown + 1 second buffer
   };
+
+  // Handle permission states after all hooks
+  if (!permission) {
+    return <View style={styles.container} />;
+  }
+
+  if (!permission.granted) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.permissionText}>We need camera permission to record battles</Text>
+        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+          <Text style={styles.permissionButtonText}>Grant Permission</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
