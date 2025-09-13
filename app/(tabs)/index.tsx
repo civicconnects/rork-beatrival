@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Plus, Zap } from 'lucide-react-native';
+import { Plus, Zap, Video } from 'lucide-react-native';
 import { useAuth } from '@/hooks/use-auth';
 import { useBattles } from '@/hooks/use-battles';
 import { BattleCard } from '@/components/BattleCard';
@@ -62,13 +62,22 @@ export default function HomeScreen() {
               </View>
             </View>
           </View>
-          <TouchableOpacity
-            style={styles.challengeButton}
-            onPress={() => router.push('/challenge')}
-          >
-            <Plus size={20} color="white" />
-            <Text style={styles.challengeButtonText}>New Challenge</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.challengeButton}
+              onPress={() => router.push('/challenge')}
+            >
+              <Plus size={20} color="white" />
+              <Text style={styles.challengeButtonText}>New Challenge</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.liveButton}
+              onPress={() => router.push('/live-streams')}
+            >
+              <Video size={20} color="white" />
+              <Text style={styles.liveButtonText}>Live Streams</Text>
+            </TouchableOpacity>
+          </View>
         </LinearGradient>
 
         {/* Pending Challenges */}
@@ -171,18 +180,38 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.7)',
     fontSize: 12,
   },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
   challengeButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.2)',
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.full,
-    gap: theme.spacing.sm,
+    gap: theme.spacing.xs,
   },
   challengeButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  liveButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,107,107,0.3)',
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.full,
+    gap: theme.spacing.xs,
+  },
+  liveButtonText: {
+    color: 'white',
+    fontSize: 14,
     fontWeight: '600',
   },
   section: {

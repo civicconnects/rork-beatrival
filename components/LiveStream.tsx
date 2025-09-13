@@ -7,6 +7,7 @@ import { GradientButton } from '@/components/GradientButton';
 interface LiveStreamProps {
   channelName: string;
   isHost: boolean;
+  battleType?: 'dancing' | 'singing';
   onStreamEnd?: () => void;
   onViewerJoin?: (viewerCount: number) => void;
 }
@@ -14,6 +15,7 @@ interface LiveStreamProps {
 export const LiveStream: React.FC<LiveStreamProps> = ({
   channelName,
   isHost,
+  battleType = 'dancing',
   onStreamEnd,
   onViewerJoin,
 }) => {
@@ -23,17 +25,33 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
   const [viewerCount, setViewerCount] = useState<number>(0);
   const [agoraToken, setAgoraToken] = useState<string | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  
+  // Backend mutations
+  const createStreamMutation = trpc.streams.create.useMutation();
+  const endStreamMutation = trpc.streams.end.useMutation();
+  const joinStreamMutation = trpc.streams.join.useMutation();
 
-  const stopStream = useCallback(() => {
+  const stopStream = useCallback(async () => {
     if (Platform.OS === 'web' && streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    
+    // Notify backend that stream has ended
+    if (isHost && isStreaming) {
+      try {
+        await endStreamMutation.mutateAsync({ channelName });
+        console.log('✅ Stream ended in backend');
+      } catch (error) {
+        console.error('Failed to end stream in backend:', error);
+      }
+    }
+    
     setIsStreaming(false);
     setViewerCount(0);
     setAgoraToken(null);
     onStreamEnd?.();
-  }, [onStreamEnd]);
+  }, [channelName, isHost, isStreaming, onStreamEnd, endStreamMutation]);
 
   // Get Agora token
   const generateTokenMutation = trpc.agora.generateToken.useMutation({
@@ -49,6 +67,34 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
             tokenLength: data.token.length
           });
           setAgoraToken(data.token);
+          
+          // Register stream in backend
+          if (isHost) {
+            createStreamMutation.mutate({
+              channelName: data.channelName,
+              hostId: data.uid.toString(),
+              hostName: `User ${data.uid}`,
+              battleType,
+              title: `Live ${battleType} battle`,
+            }, {
+              onSuccess: () => {
+                console.log('✅ Stream registered in backend');
+              },
+              onError: (error) => {
+                console.error('Failed to register stream:', error);
+              }
+            });
+          } else {
+            // Viewer joining stream
+            joinStreamMutation.mutate({ channelName }, {
+              onSuccess: (result) => {
+                if (result.success && result.stream) {
+                  setViewerCount(result.stream.viewerCount || 0);
+                  console.log('✅ Joined stream, current viewers:', result.stream.viewerCount);
+                }
+              }
+            });
+          }
           
           if (Platform.OS === 'web') {
             startWebRTCStream();
