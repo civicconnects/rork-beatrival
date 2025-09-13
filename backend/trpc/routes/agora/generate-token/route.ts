@@ -10,7 +10,7 @@ export const generateTokenProcedure = publicProcedure
       role: z.number().optional().default(1), // 1 = host, 2 = audience
     })
   )
-  .mutation(async ({ input }: { input: { channelName: string; uid?: number; role?: number } }) => {
+  .mutation(async ({ input }) => {
     try {
       // Use your provided Agora credentials
       const appId = '4a6fd7540b324275bab0f8f82def07aa';

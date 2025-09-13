@@ -66,27 +66,26 @@ export default function RecordScreen() {
   }, [countdown]);
 
   const startRecording = () => {
+    if (isRecording || countdown !== null) return;
     startCountdown();
   };
 
   const createOpenChallenge = () => {
-    if (!user) return;
+    if (!user) {
+      Alert.alert('Sign In Required', 'Please sign in to create challenges');
+      return;
+    }
+    
+    if (isRecording || countdown !== null) return;
     
     // Start countdown before going live
     setCountdown(3);
     
-    // After countdown, create challenge
+    // After countdown, navigate to live streaming
     setTimeout(() => {
-      createChallenge({
-        from: user,
-        type: 'open',
-        battleType: 'dance', // Default to dance, can be changed in challenge screen
-        hashtags: ['#OpenChallenge'],
-        timeLimit: 120,
-      });
-      
-      Alert.alert('Challenge Created', 'Your open challenge is now live!');
-      router.push('/(tabs)');
+      setCountdown(null);
+      // Navigate to live streaming test page
+      router.push('/live-test');
     }, 4000); // 3 seconds countdown + 1 second buffer
   };
 

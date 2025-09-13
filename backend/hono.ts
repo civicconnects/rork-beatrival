@@ -22,7 +22,17 @@ app.use(
 
 // Simple health check endpoint
 app.get("/", (c) => {
-  return c.json({ status: "ok", message: "API is running" });
+  return c.json({ status: "ok", message: "API is running", timestamp: new Date().toISOString() });
+});
+
+// Test endpoint for debugging
+app.get("/test", (c) => {
+  return c.json({ 
+    status: "ok", 
+    message: "Test endpoint working",
+    headers: c.req.header(),
+    url: c.req.url
+  });
 });
 
 export default app;

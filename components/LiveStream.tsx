@@ -117,13 +117,34 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
         Alert.alert('Stream Error', 'Failed to process server response. Please try again.');
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       try {
-        const errorMessage = error?.message || 'Unknown error';
-        console.error('❌ Failed to generate Agora token:', errorMessage);
-        Alert.alert('Stream Error', `Failed to start stream: ${errorMessage}\n\nPlease check your internet connection and try again.`);
+        let errorMessage = 'Unknown error';
+        
+        // Handle different error types
+        if (error?.message) {
+          errorMessage = error.message;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        } else if (error?.data?.message) {
+          errorMessage = error.data.message;
+        }
+        
+        // Check if it's a JSON parse error
+        if (errorMessage.includes('JSON') || errorMessage.includes('parse')) {
+          errorMessage = 'Server communication error. Please check your connection.';
+          console.error('❌ JSON Parse Error - Server might be returning HTML instead of JSON');
+        }
+        
+        console.error('❌ Failed to generate Agora token:', errorMessage, error);
+        Alert.alert(
+          'Stream Error', 
+          `Failed to start stream: ${errorMessage}\n\nPlease check your internet connection and try again.`,
+          [{ text: 'OK', onPress: () => stopStream() }]
+        );
       } catch (alertError) {
         console.error('❌ Error showing alert:', alertError);
+        stopStream();
       }
     },
   });
@@ -165,6 +186,17 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
 
 
   const startStream = () => {
+    if (hasStarted) {
+      console.log('⚠️ Stream already started, preventing duplicate start');
+      return;
+    }
+    
+    console.log('🎬 Starting stream with params:', {
+      channelName,
+      role: isHost ? 'host (1)' : 'audience (2)',
+      isHost
+    });
+    
     setHasStarted(true);
     generateTokenMutation.mutate({
       channelName,
@@ -174,11 +206,17 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
 
   // Auto-start stream when component mounts (called from parent after countdown)
   useEffect(() => {
-    if (!hasStarted) {
-      console.log('🚀 Auto-starting stream for channel:', channelName);
-      startStream();
-    }
-  }, []);
+    // Add a small delay to prevent race conditions
+    const timer = setTimeout(() => {
+      if (!hasStarted && !generateTokenMutation.isPending) {
+        console.log('🚀 Auto-starting stream for channel:', channelName);
+        startStream();
+      }
+    }, 100);
+    
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   useEffect(() => {
     return () => {
