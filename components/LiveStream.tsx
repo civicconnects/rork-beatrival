@@ -206,7 +206,7 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
 
   // Auto-start stream when component mounts (called from parent after countdown)
   useEffect(() => {
-    // Add a small delay to prevent race conditions
+    // Only auto-start if we haven't started yet and we're not showing the start screen
     const timer = setTimeout(() => {
       if (!hasStarted && !generateTokenMutation.isPending) {
         console.log('🚀 Auto-starting stream for channel:', channelName);
@@ -272,14 +272,11 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
           </View>
         ) : (
           <View style={styles.startContainer}>
-            <Text style={styles.startTitle}>Ready to go live?</Text>
+            <Text style={styles.startTitle}>Connecting to stream...</Text>
             <Text style={styles.startSubtitle}>Channel: {channelName}</Text>
-            <GradientButton
-              title={isHost ? "Start Broadcasting" : "Join Stream"}
-              onPress={startStream}
-              loading={generateTokenMutation.isPending}
-              style={styles.controlButton}
-            />
+            {generateTokenMutation.isPending && (
+              <Text style={styles.loadingText}>Generating token...</Text>
+            )}
           </View>
         )}
       </View>
@@ -313,14 +310,11 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
         </CameraView>
       ) : (
         <View style={styles.startContainer}>
-          <Text style={styles.startTitle}>Ready to go live?</Text>
+          <Text style={styles.startTitle}>Connecting to stream...</Text>
           <Text style={styles.startSubtitle}>Channel: {channelName}</Text>
-          <GradientButton
-            title={isHost ? "Start Broadcasting" : "Join Stream"}
-            onPress={startStream}
-            loading={generateTokenMutation.isPending}
-            style={styles.controlButton}
-          />
+          {generateTokenMutation.isPending && (
+            <Text style={styles.loadingText}>Generating token...</Text>
+          )}
         </View>
       )}
     </View>
@@ -408,6 +402,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 32,
     textAlign: 'center',
+  },
+  loadingText: {
+    color: '#4ade80',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 16,
   },
   mobileHeader: {
     position: 'absolute',
