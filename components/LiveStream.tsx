@@ -252,7 +252,7 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
       }
       
       // Set up event listeners
-      client.on('user-published', async (user, mediaType) => {
+      client.on('user-published', async (user: any, mediaType: 'audio' | 'video') => {
         console.log('👤 User published:', user.uid, mediaType);
         await client.subscribe(user, mediaType);
         
@@ -267,16 +267,16 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
         }
       });
       
-      client.on('user-unpublished', (user) => {
+      client.on('user-unpublished', (user: any) => {
         console.log('👤 User unpublished:', user.uid);
       });
       
-      client.on('user-joined', (user) => {
+      client.on('user-joined', (user: any) => {
         console.log('👤 User joined:', user.uid);
         setViewerCount(prev => prev + 1);
       });
       
-      client.on('user-left', (user) => {
+      client.on('user-left', (user: any) => {
         console.log('👤 User left:', user.uid);
         setViewerCount(prev => Math.max(0, prev - 1));
       });
