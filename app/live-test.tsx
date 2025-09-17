@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Alert, Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Video, Users } from 'lucide-react-native';
+import { Video, Users, AlertCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '@/constants/theme';
 import { GradientButton } from '@/components/GradientButton';
 import { LiveStream } from '@/components/LiveStream';
+import { trpc } from '@/lib/trpc';
 
 export default function LiveTestScreen() {
   const params = useLocalSearchParams();
@@ -22,7 +23,18 @@ export default function LiveTestScreen() {
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [viewerCount, setViewerCount] = useState<number>(0);
+  const [debugInfo, setDebugInfo] = useState<string>('');
   const insets = useSafeAreaInsets();
+  
+  // Test tRPC connection
+  const testMutation = trpc.example.hi.useMutation({
+    onSuccess: (data) => {
+      setDebugInfo(prev => prev + '\n✅ tRPC connection working: ' + JSON.stringify(data));
+    },
+    onError: (error: any) => {
+      setDebugInfo(prev => prev + '\n❌ tRPC error: ' + error.message);
+    }
+  });
 
   const startCountdown = () => {
     if (!channelName.trim()) {
@@ -47,9 +59,18 @@ export default function LiveTestScreen() {
     }
   }, [countdown]);
 
+  const testConnection = () => {
+    setDebugInfo('🔍 Testing tRPC connection...');
+    testMutation.mutate({ name: 'test' });
+  };
+  
   const startStream = () => {
     if (!channelName.trim()) {
-      Alert.alert('Error', 'Please enter a channel name');
+      if (Platform.OS === 'web') {
+        console.error('Error: Please enter a channel name');
+      } else {
+        Alert.alert('Error', 'Please enter a channel name');
+      }
       return;
     }
     startCountdown();
@@ -135,6 +156,23 @@ export default function LiveTestScreen() {
             {"\n"}• ✅ Real token generation working
             {"\n"}• 📱 Mobile: Camera + Token ready for Agora SDK
           </Text>
+          
+          <GradientButton
+            title="Test tRPC Connection"
+            onPress={testConnection}
+            style={styles.testButton}
+            gradient={['#10B981', '#059669']}
+          />
+          
+          {debugInfo ? (
+            <View style={styles.debugContainer}>
+              <View style={styles.debugHeader}>
+                <AlertCircle size={16} color={theme.colors.warning} />
+                <Text style={styles.debugTitle}>Debug Info</Text>
+              </View>
+              <Text style={styles.debugText}>{debugInfo}</Text>
+            </View>
+          ) : null}
 
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Channel Name</Text>
@@ -264,6 +302,35 @@ const styles = StyleSheet.create({
   },
   startButton: {
     paddingVertical: theme.spacing.lg,
+  },
+  testButton: {
+    paddingVertical: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+  },
+  debugContainer: {
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    marginTop: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.2)',
+  },
+  debugHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+  },
+  debugTitle: {
+    color: theme.colors.warning,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  debugText: {
+    color: theme.colors.textSecondary,
+    fontSize: 12,
+    fontFamily: 'monospace',
+    lineHeight: 16,
   },
   infoCard: {
     backgroundColor: 'rgba(59, 130, 246, 0.1)',

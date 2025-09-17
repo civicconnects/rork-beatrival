@@ -3,7 +3,16 @@ import { View, StyleSheet, Platform, Alert, Text } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { trpc } from '@/lib/trpc';
 import { GradientButton } from '@/components/GradientButton';
-import AgoraRTC from 'agora-rtc-sdk-ng';
+
+// Only import AgoraRTC on web platform
+let AgoraRTC: any = null;
+if (Platform.OS === 'web') {
+  try {
+    AgoraRTC = require('agora-rtc-sdk-ng').default;
+  } catch (error) {
+    console.warn('Failed to load Agora SDK on web:', error);
+  }
+}
 
 interface LiveStreamProps {
   channelName: string;
@@ -33,10 +42,22 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
   const localAudioTrackRef = useRef<any>(null);
   const localVideoTrackRef = useRef<any>(null);
   
-  // Backend mutations
-  const createStreamMutation = trpc.streams.create.useMutation();
-  const endStreamMutation = trpc.streams.end.useMutation();
-  const joinStreamMutation = trpc.streams.join.useMutation();
+  // Backend mutations with error handling
+  const createStreamMutation = trpc.streams.create.useMutation({
+    onError: (error) => {
+      console.error('Failed to create stream:', error);
+    }
+  });
+  const endStreamMutation = trpc.streams.end.useMutation({
+    onError: (error) => {
+      console.error('Failed to end stream:', error);
+    }
+  });
+  const joinStreamMutation = trpc.streams.join.useMutation({
+    onError: (error) => {
+      console.error('Failed to join stream:', error);
+    }
+  });
 
   const stopStream = useCallback(async () => {
     // Stop Agora streaming
@@ -84,7 +105,7 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
     onStreamEnd?.();
   }, [channelName, isHost, isStreamingInternal, onStreamEnd, endStreamMutation]);
 
-  // Get Agora token
+  // Get Agora token with comprehensive error handling
   const generateTokenMutation = trpc.agora.generateToken.useMutation({
     onSuccess: (data) => {
       try {
@@ -161,18 +182,28 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
           errorMessage = error.data.message;
         }
         
-        // Check if it's a JSON parse error
+        // Check for common error patterns
         if (errorMessage.includes('JSON') || errorMessage.includes('parse')) {
           errorMessage = 'Server communication error. Please check your connection.';
           console.error('❌ JSON Parse Error - Server might be returning HTML instead of JSON');
+        } else if (errorMessage.includes('fetch')) {
+          errorMessage = 'Network error. Please check your internet connection.';
+        } else if (errorMessage.includes('EXPO_PUBLIC_RORK_API_BASE_URL')) {
+          errorMessage = 'Configuration error. Please contact support.';
         }
         
         console.error('❌ Failed to generate Agora token:', errorMessage, error);
-        Alert.alert(
-          'Stream Error', 
-          `Failed to start stream: ${errorMessage}\n\nPlease check your internet connection and try again.`,
-          [{ text: 'OK', onPress: () => stopStream() }]
-        );
+        
+        // Use console.error instead of Alert on web to avoid blocking
+        if (Platform.OS === 'web') {
+          console.error('Stream Error:', errorMessage);
+        } else {
+          Alert.alert(
+            'Stream Error', 
+            `Failed to start stream: ${errorMessage}\n\nPlease check your internet connection and try again.`,
+            [{ text: 'OK', onPress: () => stopStream() }]
+          );
+        }
       } catch (alertError) {
         console.error('❌ Error showing alert:', alertError);
         stopStream();
@@ -181,7 +212,10 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
   });
 
   const startAgoraStream = async (appId: string, token: string, uid: number) => {
-    if (Platform.OS !== 'web') return;
+    if (Platform.OS !== 'web' || !AgoraRTC) {
+      console.log('Agora SDK not available or not on web platform');
+      return;
+    }
 
     try {
       console.log('🚀 Starting Agora Web SDK stream...');

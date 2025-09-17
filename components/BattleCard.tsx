@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   battleTypeText: {
-    color: '#FFFFFF',
+    color: theme.colors.text,
     fontSize: 12,
     fontWeight: '800',
     textTransform: 'uppercase',
@@ -154,10 +154,10 @@ const styles = StyleSheet.create({
     gap: theme.spacing.xs,
   },
   hashtag: {
-    color: '#FFFFFF',
+    color: theme.colors.text,
     fontSize: 12,
     fontWeight: '700',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 12,
