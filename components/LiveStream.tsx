@@ -3,6 +3,7 @@ import { View, StyleSheet, Platform, Alert, Text } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { trpc } from '@/lib/trpc';
 import { GradientButton } from '@/components/GradientButton';
+import AgoraRTC from 'agora-rtc-sdk-ng';
 
 interface LiveStreamProps {
   channelName: string;
@@ -25,7 +26,12 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
   const [viewerCount, setViewerCount] = useState<number>(0);
   const [agoraToken, setAgoraToken] = useState<string | null>(null);
   const [hasStarted, setHasStarted] = useState<boolean>(false);
+  const [agoraAppId, setAgoraAppId] = useState<string | null>(null);
+  const [agoraUid, setAgoraUid] = useState<number>(0);
   const streamRef = useRef<MediaStream | null>(null);
+  const agoraClientRef = useRef<any>(null);
+  const localAudioTrackRef = useRef<any>(null);
+  const localVideoTrackRef = useRef<any>(null);
   
   // Backend mutations
   const createStreamMutation = trpc.streams.create.useMutation();
@@ -33,6 +39,29 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
   const joinStreamMutation = trpc.streams.join.useMutation();
 
   const stopStream = useCallback(async () => {
+    // Stop Agora streaming
+    if (Platform.OS === 'web' && agoraClientRef.current) {
+      try {
+        // Stop local tracks
+        if (localAudioTrackRef.current) {
+          localAudioTrackRef.current.close();
+          localAudioTrackRef.current = null;
+        }
+        if (localVideoTrackRef.current) {
+          localVideoTrackRef.current.close();
+          localVideoTrackRef.current = null;
+        }
+        
+        // Leave channel
+        await agoraClientRef.current.leave();
+        console.log('✅ Left Agora channel');
+        agoraClientRef.current = null;
+      } catch (error) {
+        console.error('Error stopping Agora stream:', error);
+      }
+    }
+    
+    // Fallback: stop regular WebRTC stream
     if (Platform.OS === 'web' && streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
@@ -69,6 +98,8 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
             tokenLength: data.token.length
           });
           setAgoraToken(data.token);
+          setAgoraAppId(data.appId);
+          setAgoraUid(data.uid);
           
           // Register stream in backend
           if (isHost) {
@@ -99,7 +130,7 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
           }
           
           if (Platform.OS === 'web') {
-            startWebRTCStream();
+            startAgoraStream(data.appId, data.token, data.uid);
           } else {
             // For mobile, we'll use camera view with Agora token ready
             setIsStreamingInternal(true);
@@ -149,37 +180,105 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
     },
   });
 
-  const startWebRTCStream = async () => {
+  const startAgoraStream = async (appId: string, token: string, uid: number) => {
     if (Platform.OS !== 'web') return;
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 30 }
-        },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        },
+      console.log('🚀 Starting Agora Web SDK stream...');
+      
+      // Create Agora client
+      const client = AgoraRTC.createClient({ 
+        mode: 'live', 
+        codec: 'vp8' 
       });
-      streamRef.current = stream;
+      agoraClientRef.current = client;
+      
+      // Set client role
+      if (isHost) {
+        await client.setClientRole('host');
+        console.log('✅ Set role to host');
+      } else {
+        await client.setClientRole('audience');
+        console.log('✅ Set role to audience');
+      }
+      
+      // Set up event listeners
+      client.on('user-published', async (user, mediaType) => {
+        console.log('👤 User published:', user.uid, mediaType);
+        await client.subscribe(user, mediaType);
+        
+        if (mediaType === 'video') {
+          const remoteVideoContainer = document.getElementById('remote-video');
+          if (remoteVideoContainer && user.videoTrack) {
+            user.videoTrack.play(remoteVideoContainer);
+          }
+        }
+        if (mediaType === 'audio' && user.audioTrack) {
+          user.audioTrack.play();
+        }
+      });
+      
+      client.on('user-unpublished', (user) => {
+        console.log('👤 User unpublished:', user.uid);
+      });
+      
+      client.on('user-joined', (user) => {
+        console.log('👤 User joined:', user.uid);
+        setViewerCount(prev => prev + 1);
+      });
+      
+      client.on('user-left', (user) => {
+        console.log('👤 User left:', user.uid);
+        setViewerCount(prev => Math.max(0, prev - 1));
+      });
+      
+      // Join channel
+      await client.join(appId, channelName, token, uid);
+      console.log('✅ Joined Agora channel:', channelName);
+      
+      if (isHost) {
+        // Create local tracks
+        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        const videoTrack = await AgoraRTC.createCameraVideoTrack({
+          encoderConfig: {
+            width: 1280,
+            height: 720,
+            frameRate: 30,
+            bitrateMin: 1000,
+            bitrateMax: 3000,
+          }
+        });
+        
+        localAudioTrackRef.current = audioTrack;
+        localVideoTrackRef.current = videoTrack;
+        
+        // Play local video
+        const localVideoContainer = document.getElementById('local-video');
+        if (localVideoContainer) {
+          videoTrack.play(localVideoContainer);
+        }
+        
+        // Publish tracks
+        await client.publish([audioTrack, videoTrack]);
+        console.log('✅ Published local tracks');
+      }
+      
       setIsStreamingInternal(true);
       
-      // Simulate viewer count updates
+      // Simulate viewer count updates for demo
       const interval = setInterval(() => {
-        const newCount = Math.floor(Math.random() * 50) + 1;
-        setViewerCount(newCount);
-        onViewerJoin?.(newCount);
+        if (!isHost) {
+          const newCount = Math.floor(Math.random() * 50) + 1;
+          setViewerCount(newCount);
+          onViewerJoin?.(newCount);
+        }
       }, 5000);
       
-      // Clean up interval when stream stops
       return () => clearInterval(interval);
+      
     } catch (error) {
-      console.error('Failed to start WebRTC stream:', error);
-      Alert.alert('Error', 'Failed to access camera and microphone. Please check your permissions.');
+      console.error('❌ Failed to start Agora stream:', error);
+      Alert.alert('Stream Error', `Failed to start Agora stream: ${error}`);
     }
   };
 
@@ -252,16 +351,11 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
                 <Text style={styles.tokenStatus}>🟢 Connected to Agora</Text>
               )}
             </View>
-            <video
-              ref={(video) => {
-                if (video && streamRef.current) {
-                  video.srcObject = streamRef.current;
-                }
-              }}
-              autoPlay
-              muted
-              style={styles.webVideo}
-            />
+            {isHost ? (
+              <div id="local-video" style={styles.webVideo as any} />
+            ) : (
+              <div id="remote-video" style={styles.webVideo as any} />
+            )}
             <View style={styles.streamControls}>
               <GradientButton
                 title="Stop Stream"

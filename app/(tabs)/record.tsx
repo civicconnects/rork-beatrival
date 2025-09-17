@@ -12,13 +12,13 @@ type BattleType = 'dancing' | 'singing';
 
 export default function RecordScreen() {
   // All hooks must be called in the same order every time
-  const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>('front');
   const [isRecording, setIsRecording] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [battleType, setBattleType] = useState<BattleType>('dancing');
   const [isGoingLive, setIsGoingLive] = useState(false);
   const cameraRef = useRef<any>(null);
+  const [permission, requestPermission] = useCameraPermissions();
   const { user } = useAuth();
   const { createChallenge } = useBattles();
 
