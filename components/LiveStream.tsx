@@ -4,15 +4,23 @@ import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { trpc } from '@/lib/trpc';
 import { GradientButton } from '@/components/GradientButton';
 
-// Only import AgoraRTC on web platform
+// Lazy load AgoraRTC only when needed on web platform
 let AgoraRTC: any = null;
-if (Platform.OS === 'web') {
-  try {
-    AgoraRTC = require('agora-rtc-sdk-ng').default;
-  } catch (error) {
-    console.warn('Failed to load Agora SDK on web:', error);
+
+const loadAgoraSDK = async () => {
+  if (Platform.OS === 'web' && !AgoraRTC) {
+    try {
+      const agoraModule = await import('agora-rtc-sdk-ng');
+      AgoraRTC = agoraModule.default;
+      console.log('✅ Agora SDK loaded successfully');
+      return AgoraRTC;
+    } catch (error) {
+      console.warn('Failed to load Agora SDK on web:', error);
+      return null;
+    }
   }
-}
+  return AgoraRTC;
+};
 
 interface LiveStreamProps {
   channelName: string;
@@ -212,8 +220,15 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
   });
 
   const startAgoraStream = async (appId: string, token: string, uid: number) => {
-    if (Platform.OS !== 'web' || !AgoraRTC) {
-      console.log('Agora SDK not available or not on web platform');
+    if (Platform.OS !== 'web') {
+      console.log('Not on web platform, skipping Agora SDK');
+      return;
+    }
+
+    // Load Agora SDK dynamically
+    const agora = await loadAgoraSDK();
+    if (!agora) {
+      console.log('Agora SDK not available');
       return;
     }
 
@@ -221,7 +236,7 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
       console.log('🚀 Starting Agora Web SDK stream...');
       
       // Create Agora client
-      const client = AgoraRTC.createClient({ 
+      const client = agora.createClient({ 
         mode: 'live', 
         codec: 'vp8' 
       });
@@ -272,8 +287,8 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
       
       if (isHost) {
         // Create local tracks
-        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-        const videoTrack = await AgoraRTC.createCameraVideoTrack({
+        const audioTrack = await agora.createMicrophoneAudioTrack();
+        const videoTrack = await agora.createCameraVideoTrack({
           encoderConfig: {
             width: 1280,
             height: 720,
