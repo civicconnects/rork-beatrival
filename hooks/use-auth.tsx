@@ -1,6 +1,7 @@
 import createContextHook from '@nkzw/create-context-hook';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { User, AgeGroup } from '@/types';
 import { mockUsers } from '@/mocks/data';
 
@@ -17,11 +18,17 @@ interface AuthState {
 
 export const [AuthProvider, useAuth] = createContextHook<AuthState>(() => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(Platform.OS === 'web' ? false : true);
   const [isOnboarded, setIsOnboarded] = useState(false);
   const [ageVerified, setAgeVerified] = useState(false);
 
   const loadUser = useCallback(async () => {
+    // Skip async storage on web during initial render to prevent hydration issues
+    if (Platform.OS === 'web') {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const stored = await AsyncStorage.getItem('user');
       const onboarded = await AsyncStorage.getItem('onboarded');
@@ -82,14 +89,22 @@ export const [AuthProvider, useAuth] = createContextHook<AuthState>(() => {
   const login = useCallback(async (username: string) => {
     const mockUser = mockUsers.find(u => u.username === username) || mockUsers[0];
     setUser(mockUser);
-    await AsyncStorage.setItem('user', JSON.stringify(mockUser));
+    
+    // Only use AsyncStorage on mobile
+    if (Platform.OS !== 'web') {
+      await AsyncStorage.setItem('user', JSON.stringify(mockUser));
+    }
   }, []);
 
   const logout = useCallback(async () => {
     setUser(null);
     setIsOnboarded(false);
     setAgeVerified(false);
-    await AsyncStorage.multiRemove(['user', 'onboarded', 'ageVerified']);
+    
+    // Only use AsyncStorage on mobile
+    if (Platform.OS !== 'web') {
+      await AsyncStorage.multiRemove(['user', 'onboarded', 'ageVerified']);
+    }
   }, []);
 
   const completeOnboarding = useCallback(async (ageGroup: AgeGroup, username: string, age: number) => {
@@ -119,9 +134,12 @@ export const [AuthProvider, useAuth] = createContextHook<AuthState>(() => {
     setIsOnboarded(true);
     setAgeVerified(true);
     
-    await AsyncStorage.setItem('user', JSON.stringify(newUser));
-    await AsyncStorage.setItem('onboarded', 'true');
-    await AsyncStorage.setItem('ageVerified', 'true');
+    // Only use AsyncStorage on mobile
+    if (Platform.OS !== 'web') {
+      await AsyncStorage.setItem('user', JSON.stringify(newUser));
+      await AsyncStorage.setItem('onboarded', 'true');
+      await AsyncStorage.setItem('ageVerified', 'true');
+    }
   }, []);
 
   const updateProfile = useCallback(async (updates: Partial<User>) => {
@@ -129,7 +147,11 @@ export const [AuthProvider, useAuth] = createContextHook<AuthState>(() => {
     
     const updatedUser = { ...user, ...updates };
     setUser(updatedUser);
-    await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+    
+    // Only use AsyncStorage on mobile
+    if (Platform.OS !== 'web') {
+      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+    }
   }, [user]);
 
   return useMemo(() => ({

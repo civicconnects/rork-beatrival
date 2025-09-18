@@ -1,16 +1,27 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
-import { StyleSheet } from "react-native";
+import React, { useEffect, useState } from "react";
+import { StyleSheet, View, Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AuthProvider } from "@/hooks/use-auth";
 import { BattleProvider } from "@/hooks/use-battles";
 import { trpc, trpcClient } from "@/lib/trpc";
 
-SplashScreen.preventAutoHideAsync();
+// Prevent auto hide only on mobile
+if (Platform.OS !== 'web') {
+  SplashScreen.preventAutoHideAsync();
+}
 
-const queryClient = new QueryClient();
+// Create query client with stable configuration
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: false, // Disable retries to prevent hydration issues
+    },
+  },
+});
 
 function RootLayoutNav() {
   return (
@@ -63,18 +74,49 @@ function RootLayoutNav() {
         title: 'Live Stream Test',
         headerShown: false,
       }} />
+      <Stack.Screen name="live-streams" options={{ 
+        title: 'Live Streams',
+        headerShown: false,
+      }} />
+      <Stack.Screen name="profile-edit" options={{ 
+        title: 'Edit Profile',
+        headerShown: false,
+      }} />
     </Stack>
   );
 }
 
 export default function RootLayout() {
+  const [isHydrated, setIsHydrated] = useState(Platform.OS === 'web' ? false : true);
+
   useEffect(() => {
-    SplashScreen.hideAsync();
+    // Handle splash screen only on mobile
+    if (Platform.OS !== 'web') {
+      SplashScreen.hideAsync();
+    }
+    
+    // Handle hydration for web
+    if (Platform.OS === 'web') {
+      // Small delay to ensure proper hydration
+      const timer = setTimeout(() => {
+        setIsHydrated(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
+  // Show loading screen during hydration on web
+  if (Platform.OS === 'web' && !isHydrated) {
+    return (
+      <View style={styles.loadingContainer}>
+        {/* Empty loading screen to prevent hydration mismatch */}
+      </View>
+    );
+  }
+
   return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <GestureHandlerRootView style={styles.container}>
           <AuthProvider>
             <BattleProvider>
@@ -82,13 +124,17 @@ export default function RootLayout() {
             </BattleProvider>
           </AuthProvider>
         </GestureHandlerRootView>
-      </QueryClientProvider>
-    </trpc.Provider>
+      </trpc.Provider>
+    </QueryClientProvider>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#0A0A0A',
   },
 });

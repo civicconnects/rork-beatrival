@@ -285,8 +285,8 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
         console.log('✅ Set role to audience');
       }
       
-      // Set up event listeners
-      client.on('user-published', async (user: any, mediaType: string) => {
+      // Set up event listeners with proper types
+      client.on('user-published', async (user: { uid: number; videoTrack?: any; audioTrack?: any }, mediaType: 'video' | 'audio') => {
         console.log('👤 User published:', user.uid, mediaType);
         await client.subscribe(user, mediaType);
         
@@ -301,16 +301,16 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
         }
       });
       
-      client.on('user-unpublished', (user: any) => {
+      client.on('user-unpublished', (user: { uid: number }) => {
         console.log('👤 User unpublished:', user.uid);
       });
       
-      client.on('user-joined', (user: any) => {
+      client.on('user-joined', (user: { uid: number }) => {
         console.log('👤 User joined:', user.uid);
         setViewerCount(prev => prev + 1);
       });
       
-      client.on('user-left', (user: any) => {
+      client.on('user-left', (user: { uid: number }) => {
         console.log('👤 User left:', user.uid);
         setViewerCount(prev => Math.max(0, prev - 1));
       });
@@ -392,6 +392,11 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
 
   // Auto-start stream when component mounts (called from parent after countdown)
   useEffect(() => {
+    // Skip auto-start on web during initial render to prevent hydration issues
+    if (Platform.OS === 'web' && typeof window === 'undefined') {
+      return;
+    }
+    
     // Only auto-start if we haven't started yet and we're not showing the start screen
     const timer = setTimeout(() => {
       if (!hasStarted && !generateTokenMutation.isPending) {
@@ -405,7 +410,7 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
         });
         startStream();
       }
-    }, 500); // Increased delay to prevent race conditions
+    }, Platform.OS === 'web' ? 1000 : 500); // Longer delay on web to ensure hydration
     
     return () => clearTimeout(timer);
   }, [hasStarted, generateTokenMutation.isPending, channelName, isHost, startStream]); // Include all dependencies
@@ -444,10 +449,12 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
                 <Text style={styles.tokenStatus}>🟢 Connected to Agora</Text>
               )}
             </View>
-            {isHost ? (
-              <div id="local-video" style={styles.webVideo as any} />
-            ) : (
-              <div id="remote-video" style={styles.webVideo as any} />
+            {Platform.OS === 'web' && (
+              isHost ? (
+                <div id="local-video" style={styles.webVideo as any} />
+              ) : (
+                <div id="remote-video" style={styles.webVideo as any} />
+              )
             )}
             <View style={styles.streamControls}>
               <GradientButton
@@ -562,7 +569,7 @@ const styles = StyleSheet.create({
   webVideo: {
     flex: 1,
     width: '100%',
-    objectFit: 'cover',
+    ...(Platform.OS === 'web' ? { objectFit: 'cover' as any } : {}),
   },
   streamControls: {
     position: 'absolute',

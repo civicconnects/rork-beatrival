@@ -1,5 +1,6 @@
 import { createTRPCReact } from "@trpc/react-query";
 import { httpLink } from "@trpc/client";
+import { Platform } from "react-native";
 import type { AppRouter } from "@/backend/trpc/app-router";
 import superjson from "superjson";
 
@@ -27,7 +28,10 @@ export const trpcClient = trpc.createClient({
       url: `${getBaseUrl()}/api/trpc`,
       transformer: superjson,
       fetch: (url, options) => {
-        console.log('tRPC request to:', url);
+        // Only log on mobile to prevent hydration issues on web
+        if (Platform.OS !== 'web') {
+          console.log('tRPC request to:', url);
+        }
         return fetch(url, {
           ...options,
           headers: {

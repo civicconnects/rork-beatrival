@@ -15,10 +15,14 @@ export default function RecordScreen() {
   const [facing, setFacing] = useState<CameraType>('front');
   const [isRecording, setIsRecording] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [permission, requestPermission] = useCameraPermissions();
   const [battleType, setBattleType] = useState<BattleType>('dancing');
   const [isGoingLive, setIsGoingLive] = useState(false);
   const cameraRef = useRef<any>(null);
+  
+  // Move permission hook after other state hooks to maintain consistent order
+  const [permission, requestPermission] = useCameraPermissions();
+  
+  // Context hooks should come after state hooks
   const { user } = useAuth();
   const { createChallenge } = useBattles();
 
