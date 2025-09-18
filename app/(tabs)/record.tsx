@@ -11,14 +11,14 @@ import { useBattles } from '@/hooks/use-battles';
 type BattleType = 'dancing' | 'singing';
 
 export default function RecordScreen() {
-  // All hooks must be called in the same order every time
+  // All hooks must be called in the same order every time - NEVER conditionally
   const [facing, setFacing] = useState<CameraType>('front');
   const [isRecording, setIsRecording] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [permission, requestPermission] = useCameraPermissions();
   const [battleType, setBattleType] = useState<BattleType>('dancing');
   const [isGoingLive, setIsGoingLive] = useState(false);
   const cameraRef = useRef<any>(null);
-  const [permission, requestPermission] = useCameraPermissions();
   const { user } = useAuth();
   const { createChallenge } = useBattles();
 
@@ -95,20 +95,30 @@ export default function RecordScreen() {
     }
   }, [isGoingLive, countdown, battleType]);
 
-  // Handle permission states after all hooks
-  if (!permission) {
-    return <View style={styles.container} />;
-  }
+  // Handle permission states - moved after all hooks to avoid conditional hook calls
+  const renderPermissionScreen = () => {
+    if (!permission) {
+      return <View style={styles.container} />;
+    }
 
-  if (!permission.granted) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.permissionText}>We need camera permission to record battles</Text>
-        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-          <Text style={styles.permissionButtonText}>Grant Permission</Text>
-        </TouchableOpacity>
-      </View>
-    );
+    if (!permission.granted) {
+      return (
+        <View style={styles.container}>
+          <Text style={styles.permissionText}>We need camera permission to record battles</Text>
+          <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+            <Text style={styles.permissionButtonText}>Grant Permission</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return null;
+  };
+
+  // Check for permission issues first
+  const permissionScreen = renderPermissionScreen();
+  if (permissionScreen) {
+    return permissionScreen;
   }
 
   return (
@@ -261,8 +271,8 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: 'white',
     fontSize: 18,
-    fontWeight: '700',
-    textAlign: 'center',
+    fontWeight: '700' as const,
+    textAlign: 'center' as const,
     marginBottom: theme.spacing.md,
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 0, height: 2 },
@@ -282,7 +292,7 @@ const styles = StyleSheet.create({
   challengeText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
   recordingIndicator: {
     position: 'absolute',
@@ -305,7 +315,7 @@ const styles = StyleSheet.create({
   recordingText: {
     color: 'white',
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '700' as const,
   },
   countdownContainer: {
     position: 'absolute',
@@ -323,7 +333,7 @@ const styles = StyleSheet.create({
   countdownText: {
     color: 'white',
     fontSize: 48,
-    fontWeight: '900',
+    fontWeight: '900' as const,
     textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
@@ -331,7 +341,7 @@ const styles = StyleSheet.create({
   countdownSubtext: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     marginTop: theme.spacing.sm,
     textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 0, height: 1 },
@@ -383,6 +393,6 @@ const styles = StyleSheet.create({
   permissionButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
 });

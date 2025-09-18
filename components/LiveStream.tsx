@@ -4,14 +4,31 @@ import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { trpc } from '@/lib/trpc';
 import { GradientButton } from '@/components/GradientButton';
 
-// Lazy load AgoraRTC only when needed on web platform
-let AgoraRTC: any = null;
+// Type definitions for Agora SDK - simplified to avoid conflicts
+interface AgoraClient {
+  join(appId: string, channel: string, token: string, uid: number): Promise<any>;
+  leave(): Promise<void>;
+  publish(tracks: any[]): Promise<void>;
+  subscribe(user: any, mediaType: string): Promise<void>;
+  setClientRole(role: string): Promise<void>;
+  on(event: string, callback: (...args: any[]) => void): void;
+  remoteUsers: any[];
+}
 
-const loadAgoraSDK = async () => {
+interface AgoraSDK {
+  createClient(config: { mode: string; codec: string }): AgoraClient;
+  createMicrophoneAudioTrack(): Promise<any>;
+  createCameraVideoTrack(config?: any): Promise<any>;
+}
+
+// Lazy load AgoraRTC only when needed on web platform
+let AgoraRTC: AgoraSDK | null = null;
+
+const loadAgoraSDK = async (): Promise<AgoraSDK | null> => {
   if (Platform.OS === 'web' && !AgoraRTC) {
     try {
       const agoraModule = await import('agora-rtc-sdk-ng');
-      AgoraRTC = agoraModule.default;
+      AgoraRTC = agoraModule.default as unknown as AgoraSDK;
       console.log('✅ Agora SDK loaded successfully');
       return AgoraRTC;
     } catch (error) {
@@ -43,10 +60,11 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
   const [viewerCount, setViewerCount] = useState<number>(0);
   const [agoraToken, setAgoraToken] = useState<string | null>(null);
   const [hasStarted, setHasStarted] = useState<boolean>(false);
-  const [agoraAppId, setAgoraAppId] = useState<string | null>(null);
-  const [agoraUid, setAgoraUid] = useState<number>(0);
+  // Remove unused state variables
+  // const [agoraAppId, setAgoraAppId] = useState<string | null>(null);
+  // const [agoraUid, setAgoraUid] = useState<number>(0);
   const streamRef = useRef<MediaStream | null>(null);
-  const agoraClientRef = useRef<any>(null);
+  const agoraClientRef = useRef<AgoraClient | null>(null);
   const localAudioTrackRef = useRef<any>(null);
   const localVideoTrackRef = useRef<any>(null);
   
@@ -127,8 +145,8 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
             tokenLength: data.token.length
           });
           setAgoraToken(data.token);
-          setAgoraAppId(data.appId);
-          setAgoraUid(data.uid);
+          // setAgoraAppId(data.appId);
+          // setAgoraUid(data.uid);
           
           // Register stream in backend
           if (isHost) {
@@ -170,11 +188,21 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
           }
         } else {
           console.error('❌ Invalid token response:', data);
-          Alert.alert('Stream Error', 'Invalid response from server. Please try again.');
+          setHasStarted(false);
+          setIsStreamingInternal(false);
+          
+          if (Platform.OS !== 'web') {
+            Alert.alert('Stream Error', 'Invalid response from server. Please try again.');
+          }
         }
       } catch (error) {
         console.error('❌ Error processing token response:', error);
-        Alert.alert('Stream Error', 'Failed to process server response. Please try again.');
+        setHasStarted(false);
+        setIsStreamingInternal(false);
+        
+        if (Platform.OS !== 'web') {
+          Alert.alert('Stream Error', 'Failed to process server response. Please try again.');
+        }
       }
     },
     onError: (error: any) => {
@@ -202,10 +230,16 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
         
         console.error('❌ Failed to generate Agora token:', errorMessage, error);
         
-        // Use console.error instead of Alert on web to avoid blocking
-        if (Platform.OS === 'web') {
-          console.error('Stream Error:', errorMessage);
-        } else {
+        // Always use console.error to avoid blocking and web compatibility issues
+        console.error('Stream Error:', errorMessage);
+        console.error('Full error object:', error);
+        
+        // Reset state on error to prevent infinite loops
+        setHasStarted(false);
+        setIsStreamingInternal(false);
+        
+        // Only show alert on mobile platforms
+        if (Platform.OS !== 'web') {
           Alert.alert(
             'Stream Error', 
             `Failed to start stream: ${errorMessage}\n\nPlease check your internet connection and try again.`,
@@ -252,7 +286,7 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
       }
       
       // Set up event listeners
-      client.on('user-published', async (user: any, mediaType: 'audio' | 'video') => {
+      client.on('user-published', async (user: any, mediaType: string) => {
         console.log('👤 User published:', user.uid, mediaType);
         await client.subscribe(user, mediaType);
         
@@ -327,15 +361,19 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
       
     } catch (error) {
       console.error('❌ Failed to start Agora stream:', error);
-      Alert.alert('Stream Error', `Failed to start Agora stream: ${error}`);
+      
+      // Only show alert on mobile platforms
+      if (Platform.OS !== 'web') {
+        Alert.alert('Stream Error', `Failed to start Agora stream: ${error}`);
+      }
     }
   };
 
 
 
-  const startStream = () => {
-    if (hasStarted) {
-      console.log('⚠️ Stream already started, preventing duplicate start');
+  const startStream = useCallback(() => {
+    if (hasStarted || generateTokenMutation.isPending) {
+      console.log('⚠️ Stream already started or pending, preventing duplicate start');
       return;
     }
     
@@ -350,7 +388,7 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
       channelName,
       role: isHost ? 1 : 2, // 1 = host, 2 = audience
     });
-  };
+  }, [hasStarted, generateTokenMutation, channelName, isHost]);
 
   // Auto-start stream when component mounts (called from parent after countdown)
   useEffect(() => {
@@ -358,13 +396,19 @@ export const LiveStream: React.FC<LiveStreamProps> = ({
     const timer = setTimeout(() => {
       if (!hasStarted && !generateTokenMutation.isPending) {
         console.log('🚀 Auto-starting stream for channel:', channelName);
+        console.log('🔍 Debug info:', {
+          hasStarted,
+          isPending: generateTokenMutation.isPending,
+          channelName,
+          isHost,
+          platform: Platform.OS
+        });
         startStream();
       }
-    }, 100);
+    }, 500); // Increased delay to prevent race conditions
     
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+  }, [hasStarted, generateTokenMutation.isPending, channelName, isHost, startStream]); // Include all dependencies
 
   useEffect(() => {
     return () => {
@@ -536,20 +580,20 @@ const styles = StyleSheet.create({
   startTitle: {
     color: '#fff',
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: 'bold' as const,
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: 'center' as const,
   },
   startSubtitle: {
     color: '#9ca3af',
     fontSize: 16,
     marginBottom: 32,
-    textAlign: 'center',
+    textAlign: 'center' as const,
   },
   loadingText: {
     color: '#4ade80',
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: 'center' as const,
     marginTop: 16,
   },
   mobileHeader: {
@@ -568,7 +612,7 @@ const styles = StyleSheet.create({
   mobileChannelName: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: 'bold' as const,
   },
   mobileViewerCount: {
     color: '#fff',
