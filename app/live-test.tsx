@@ -32,7 +32,25 @@ export default function LiveTestScreen() {
       setDebugInfo(prev => prev + '\n✅ tRPC connection working: ' + JSON.stringify(data));
     },
     onError: (error: any) => {
-      setDebugInfo(prev => prev + '\n❌ tRPC error: ' + error.message);
+      let errorMsg = 'Unknown error';
+      if (error?.message) {
+        errorMsg = error.message;
+      } else if (error?.data?.message) {
+        errorMsg = error.data.message;
+      } else if (typeof error === 'string') {
+        errorMsg = error;
+      }
+      
+      // Add more debugging info
+      const debugDetails = {
+        message: errorMsg,
+        code: error?.data?.code,
+        httpStatus: error?.data?.httpStatus,
+        stack: error?.stack?.substring(0, 200),
+        baseUrl: process.env.EXPO_PUBLIC_RORK_API_BASE_URL || 'NOT_SET'
+      };
+      
+      setDebugInfo(prev => prev + '\n❌ tRPC error: ' + JSON.stringify(debugDetails, null, 2));
     }
   });
 
@@ -60,7 +78,8 @@ export default function LiveTestScreen() {
   }, [countdown]);
 
   const testConnection = () => {
-    setDebugInfo('🔍 Testing tRPC connection...');
+    const baseUrl = process.env.EXPO_PUBLIC_RORK_API_BASE_URL || 'NOT_SET';
+    setDebugInfo(`🔍 Testing tRPC connection...\nBase URL: ${baseUrl}\nFull URL: ${baseUrl}/api/trpc`);
     testMutation.mutate({ name: 'test' });
   };
   
