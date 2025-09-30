@@ -4,55 +4,7 @@ import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { trpc } from '@/lib/trpc';
 import { GradientButton } from '@/components/GradientButton';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-
-// Type definitions for Agora SDK - simplified to avoid conflicts
-interface AgoraClient {
-  join(appId: string, channel: string, token: string, uid: number): Promise<any>;
-  leave(): Promise<void>;
-  publish(tracks: any[]): Promise<void>;
-  subscribe(user: any, mediaType: string): Promise<void>;
-  setClientRole(role: string): Promise<void>;
-  on(event: string, callback: (...args: any[]) => void): void;
-  remoteUsers: any[];
-}
-
-interface AgoraSDK {
-  createClient(config: { mode: string; codec: string }): AgoraClient;
-  createMicrophoneAudioTrack(): Promise<any>;
-  createCameraVideoTrack(config?: any): Promise<any>;
-}
-
-// Lazy load AgoraRTC only when needed on web platform
-let AgoraRTC: AgoraSDK | null = null;
-
-const loadAgoraSDK = async (): Promise<AgoraSDK | null> => {
-  if (Platform.OS === 'web' && typeof window !== 'undefined' && !AgoraRTC) {
-    try {
-      console.log('🔄 Loading Agora SDK...');
-      const agoraModule = await import('agora-rtc-sdk-ng');
-      
-      // Check if the module loaded correctly
-      if (!agoraModule || !agoraModule.default) {
-        throw new Error('Agora SDK module not found or invalid');
-      }
-      
-      AgoraRTC = agoraModule.default as unknown as AgoraSDK;
-      
-      // Verify the SDK has required methods
-      if (typeof AgoraRTC.createClient !== 'function') {
-        throw new Error('Agora SDK createClient method not available');
-      }
-      
-      console.log('✅ Agora SDK loaded and validated successfully');
-      return AgoraRTC;
-    } catch (error) {
-      console.error('❌ Failed to load Agora SDK on web:', error);
-      AgoraRTC = null;
-      return null;
-    }
-  }
-  return AgoraRTC;
-};
+import type { AgoraClient, AgoraSDK } from '@/lib/agora-web';
 
 interface LiveStreamProps {
   channelName: string;
@@ -293,11 +245,17 @@ const LiveStreamComponent: React.FC<LiveStreamProps> = ({
       return;
     }
 
-    // Load Agora SDK dynamically
-    const agora = await loadAgoraSDK();
+    // Dynamically load Agora SDK on web
+    let agora: AgoraSDK | null = null;
+    try {
+      const { getAgoraSDK } = await import('@/lib/agora-web');
+      agora = await getAgoraSDK();
+    } catch (error) {
+      console.error('❌ Failed to load Agora SDK module:', error);
+    }
+
     if (!agora) {
       console.error('❌ Agora SDK not available, falling back to mock stream');
-      // Set streaming state to true for UI purposes
       setIsStreamingInternal(true);
       return;
     }
