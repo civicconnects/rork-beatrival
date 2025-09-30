@@ -5,6 +5,7 @@ import { createStreamProcedure } from "./routes/streams/create/route";
 import { listStreamsProcedure } from "./routes/streams/list/route";
 import { endStreamProcedure } from "./routes/streams/end/route";
 import { joinStreamProcedure } from "./routes/streams/join/route";
+import { leaveStreamProcedure } from "./routes/streams/leave/route";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -18,6 +19,7 @@ export const appRouter = createTRPCRouter({
     list: listStreamsProcedure,
     end: endStreamProcedure,
     join: joinStreamProcedure,
+    leave: leaveStreamProcedure,
   }),
 });
 
