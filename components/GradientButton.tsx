@@ -6,7 +6,7 @@ import { theme } from '@/constants/theme';
 interface GradientButtonProps {
   title: string;
   onPress: () => void;
-  gradient?: string[];
+  gradient?: readonly [string, string, ...string[]];
   style?: ViewStyle;
   textStyle?: TextStyle;
   disabled?: boolean;
@@ -44,7 +44,7 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
       activeOpacity={0.8}
     >
       <LinearGradient
-        colors={disabled ? ['#666', '#444'] : gradient}
+        colors={disabled ? ['#666', '#444'] as const : gradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={[styles.gradient, sizeStyles[size]]}
